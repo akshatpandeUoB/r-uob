@@ -1,0 +1,252 @@
+---
+title: "Summative Assessment EMATM0061 - Part B"
+author: "Akshat Pande | TX21857 | 2153363"
+date: "<br> 12/01/2022"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Section B
+
+## B.1 Faulty Security System Probability
+
+### Given
+####Assumption - passage of time is per minute
+$p^o$ - conditional probability that the sensor makes a sound if there is no person within one meter of the gate
+<br>$p^1$ - conditional probability that the sensor makes at least once, if there is at least one person present
+<br>$q$ - probability that at least one person walks within one meter of the gate
+<br>$\phi$ - conditional probability that at one person has passed during the minute, and the alarm made the sound.
+
+therefore,
+$q^o$ - probability that nobody walks within one meter of the gate
+
+
+Part (a):
+
+Function used ->
+
+$\phi$ = $(p^1/q)/(p^o/q^o + p^1/q)$
+
+
+```{r phi function}
+
+c_prob_person_given_alarm = function(p0,p1,q){
+   
+  (p1/q) / ((p0/(1-q)) + (p1/q))
+
+}
+
+```
+
+Part (b):
+
+Value of $\phi$ 
+<br> Given: $p^o = 0.05,$ <br> $p^1=0.95$, <br> $q=0.1$
+
+```{r testing phi function}
+
+phi <- c_prob_person_given_alarm(0.05,0.95,0.1)
+
+print(phi)
+
+```
+
+
+Part (c):
+
+Graph between $\phi$ and $q$ for varying value of $q$
+<br> Given : $p^o=0.05$ , <br> $p^1=0.95$
+
+```{r graphplot}
+
+library(ggplot2)
+
+x1<-seq(from=0, to=1, by=.01)
+
+print(x1)
+plotphi<- as.data.frame(x1)
+dim(plotphi)
+x2<-seq(from=0, to=0.1, by=.01)
+c_prob = function(p0,p1,input_vector){
+   (p1/input_vector) / ((p0/(1-input_vector)) + (p1/input_vector))
+}
+
+x2 <-c_prob(0.05,0.95,x1)
+x2[is.na(x2)]<-0
+phivalue<-as.data.frame(x2)
+plotphi$phivalue<-x2
+plotphi <-setNames(plotphi,c("qvalue", "phivalue"))
+head(plotphi)
+flow<- ggplot(plotphi, aes(x=qvalue,y=phivalue) ) +geom_smooth()
+flow
+```
+
+
+
+
+## B.2 Discrete function
+
+### Given -
+<br> $\alpha,\beta,\gamma \in [0,1]$
+<br> X(DNV)- {0,1,2,5}
+<br> P(X=1)= $\alpha$
+<br> P(X=2)= $\beta$
+<br> P(X=5)= $\gamma$
+<br> P(X $\notin$ {0,1,2,5}) = 0
+
+
+(a) Probability mass function = 
+ 
+ P(x)=  {1 -$\alpha - \beta - \gamma$ , if x=0}<br>
+        {$\alpha$, if x=1  }<br>
+        {$\beta$, if x=2}<br>
+        {$\gamma$, if x=5}<br>
+        {0, otherwise}<br>
+        
+  
+(b) E(X) = $\alpha + 2\beta + 5\gamma$
+
+(c) E($X^2$) - $E(X)^2$ = $(\alpha + 4\beta + 25\gamma) - (\alpha + 2\beta + 5\gamma)^2$
+
+<br>$X1,X2....,Xn$ <br>P(Xi=1)= $\alpha$, <br>P(Xi=2)= $\beta$, <br>P(Xi=5)= $\gamma$ and <br>P(X $\notin$ {0,1,2,5}) = 0
+
+let $\tilde{X}$ = <br>$\frac{1}{n}$ $\sum_{i = 1}^{n}Xi$ be the sample mean
+
+(d)  E(X) = $\frac{1}{n}$ $\sum_{i = 1}^{n}Xi$ * $(\alpha + 2\beta + 5\gamma)$ 
+
+(e)  E($X^2$) - $E(X)^2$ = $\frac{1}{n}$ $\sum_{i = 1}^{n}Xi$ * ($(\alpha + 4\beta + 25\gamma) - (\alpha + 2\beta + 5\gamma)^2$)
+
+(f) 
+```{r function}
+library('dplyr')
+library('purrr')
+sample_X_0125<-function(n,alpha,beta,gamma){
+  sample_X<-data.frame(U=runif(n))%>%
+  mutate(X=case_when(
+  (0<=U)&(U<alpha)~1,
+  (alpha<=U)&(U<alpha+beta)~2,
+  (alpha+beta<=U)&(U<alpha+beta+gamma)~5,
+  (alpha+beta+gamma<=U)&(U<=1)~0))%>%pull(X)
+  return(sample_X)
+}
+```
+
+(g)
+```{r function2}
+
+n<-100000
+alpha<-1/10
+beta<-2/10
+gamma<-3/10
+
+sample_X<-sample_X_0125(n,alpha,beta,gamma)
+mean(sample_X)
+
+```
+
+
+(h)
+```{r function3}
+
+alpha<-1/10
+beta<-2/10
+gamma<-3/10
+simulation_by_n<-data.frame(n=seq(0,10000,100))%>%
+  mutate(sample_X=map(.x=n,~sample_X_0125(.x,alpha,beta,gamma)))%>%
+  mutate(sample_avg=map_dbl(.x=sample_X,~mean(.x)))%>%
+  select(-sample_X)%>%
+  mutate(expectation=alpha+2*beta+5*gamma)
+  simulation_by_n%>%head(5)
+
+  
+```
+
+
+(i)
+```{r function3plot}
+plotit<- ggplot(simulation_by_n, aes(x=sample_avg)) + geom_histogram(binwidth=0.2)
+
+plotit
+```
+
+(h)
+```{r variance and expectation}
+expectation<- alpha + 2*beta + 5*gamma
+print(expectation)
+var(sample_X)
+
+```
+
+
+## B.3 Exponential Distribution.
+
+(a) Formula for population mean and variance
+
+Population mean for exponential random variable X with paramater $\lambda$ = $\frac{1}{\lambda}$
+
+Variance for exponential variable random variable X with parameter $\lambda$ = $\frac{2}{\lambda^2}$
+
+(b) Formula for cumulative distribution function and quantile function for exponential random variables with paramter $\lambda$
+
+Cummulative function is given by =  <br> $F\lambda(x)$ = {0, if x<=0}
+                                                   {1 - $$e^{-\lambda x}$$, if x>0}
+
+Quantile function is given by = <br> $$ F^{-1} \lambda (x)$$ = inf{ x $\in$ R : F $\lambda$ x <=p} 
+                                                          {-$\infty$, if p=0}
+                                                          { $\frac{1}{\lambda}$ ln(1-p), if p $\in$ (0,1]}
+  
+(c)
+
+Maximum Likelihood Estimation = $\bar{X}$
+  
+                                                          
+(d)
+
+```{r function4}
+library(dplyr)
+set.seed(0)
+num_trials_per_sample_size<-100
+min_sample_size<-5
+max_sample_size<-1000
+sample_size_inc<-5
+lambda_0<-0.01
+poisson_simulation_df<-expand.grid(trial=seq(num_trials_per_sample_size),
+sample_size=seq(min_sample_size,max_sample_size,
+sample_size_inc))%>%
+# create data frame of all pairs of sample_size and trial
+mutate(simulation=pmap(.l=list(trial,sample_size),
+.f=~rpois(.y,lambda=lambda_0)))%>%
+# simulate sequences of Gaussian random variables
+mutate(lambda_mle=map_dbl(.x=simulation,.f=mean))%>%
+# compute the sample sd
+group_by(sample_size)%>%
+summarise(msq_error=mean((lambda_mle-lambda_0)*2))
+poisson_simulation_df%>%
+ggplot(aes(x=sample_size,y=msq_error))+
+geom_smooth()+
+theme_bw()+
+xlab("Sample size")+ylab("Mean square error")
+```
+
+
+(e)
+
+```{r bird_data}
+library(readr)
+bird_data<-read.csv("bird_data_EMATM0061.csv")
+
+alpha<-0.00000004192201
+sample_size<-length(bird_data$Time)
+sample_mean<-mean(bird_data$Time)
+sample_sd<-sd(bird_data$Time)
+t<-qt(1-alpha/2,df=sample_size-1)
+confidence_interval_l<-sample_mean-t*sample_sd/sqrt(sample_size)
+confidence_interval_u<-sample_mean+t*sample_sd/sqrt(sample_size)
+confidence_interval<-c(confidence_interval_l,confidence_interval_u)
+print(confidence_interval)
+percentage<-(confidence_interval[1] / confidence_interval[2]) * 100
+print(percentage)
+print("Confidence level of 95% achieved for alpha=0.00000004192201")
+```
